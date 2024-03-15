@@ -2,6 +2,7 @@
 
 import argparse
 import importlib
+import json
 import os
 import re
 from collections import Counter, deque, namedtuple, OrderedDict
@@ -1911,6 +1912,35 @@ def runSimulation(disas, uArchConfig: MicroArchConfig, alignmentOffset, initPoli
 
    adjustLatenciesAndAddMergeUops(instructions, uArchConfig)
    computeUopProperties(instructions)
+
+   # Do my stuff here
+   uops = []
+
+   dependencies = {}
+
+   for instruction in instructions:
+     for uop_properties in instruction.UopPropertiesList:
+       current_index = len(uops)
+       current_uop = {
+        'possible_ports': uop_properties.possiblePorts,
+        'latency': next(iter(uop_properties.latencies.values())),
+        'dependencies': []
+       }
+       # TODO(model deps between flag registers)
+       for index, input_operand in enumerate(uop_properties.inputOperands):
+         if hasattr(input_operand, 'reg'):
+           if input_operand.reg in dependencies:
+             current_uop['dependencies'].append(dependencies[input_operand.reg])
+       for index, output_operand in enumerate(uop_properties.outputOperands):
+         if hasattr(output_operand, 'reg'):
+           dependencies[output_operand.reg] = current_index
+           assert(current_uop['latency'] == uop_properties.latencies[output_operand])
+       uops.append(current_uop)
+       print(current_uop)
+
+   with open('./test.json', 'w') as output_file_handle:
+     json.dump(uops, output_file_handle, indent=2)
+   exit(1)
 
    retireQueue = deque()
    rb = ReorderBuffer(retireQueue, uArchConfig)
