@@ -1921,9 +1921,17 @@ def runSimulation(disas, uArchConfig: MicroArchConfig, alignmentOffset, initPoli
    for instruction in instructions:
      for uop_properties in instruction.UopPropertiesList:
        current_index = len(uops)
+       latency = 0
+       if len(uop_properties.latencies) > 0:
+         latency = next(iter(uop_properties.latencies.values()))
+       else:
+         latency = 0
+       if latency == 0:
+         exit(1)
+         continue
        current_uop = {
         'possible_ports': uop_properties.possiblePorts,
-        'latency': next(iter(uop_properties.latencies.values())),
+        'latency': latency,
         'dependencies': []
        }
        # TODO(model deps between flag registers)
