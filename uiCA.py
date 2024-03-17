@@ -1900,6 +1900,14 @@ def canonicalizeInstrString(instrString):
 def getURL(instrStr):
    return 'https://www.uops.info/html-instr/' + canonicalizeInstrString(instrStr) + '.html'
 
+def get_super_register(input_register):
+  if input_register == 'EAX' or input_register == 'AX' or input_register == 'AL':
+    return 'RAX'
+  elif input_register == 'ECX' or input_register == 'CX' or input_register == 'CL':
+    return 'RCX'
+  elif input_register == 'EDX' or input_register == 'DX' or input_register == 'DL':
+    return 'RCX'
+  return input_register
 
 # Returns the throughput
 def runSimulation(disas, uArchConfig: MicroArchConfig, alignmentOffset, initPolicy, noMicroFusion, noMacroFusion, simpleFrontEnd, minIterations, minCycles,
@@ -1934,14 +1942,21 @@ def runSimulation(disas, uArchConfig: MicroArchConfig, alignmentOffset, initPoli
         'latency': latency,
         'dependencies': []
        }
+       print(f'on uop {current_index}')
        # TODO(model deps between flag registers)
+       print('going through input operands')
        for index, input_operand in enumerate(uop_properties.inputOperands):
          if hasattr(input_operand, 'reg'):
            if input_operand.reg in dependencies:
-             current_uop['dependencies'].append(dependencies[input_operand.reg])
+             current_register = get_super_register(input_operand.reg)
+             print(current_register)
+             current_uop['dependencies'].append(dependencies[current_register])
+       print('going through output operands')
        for index, output_operand in enumerate(uop_properties.outputOperands):
          if hasattr(output_operand, 'reg'):
-           dependencies[output_operand.reg] = current_index
+           current_register = get_super_register(output_operand.reg)
+           dependencies[current_register] = current_index
+           print(current_register)
            assert(current_uop['latency'] == uop_properties.latencies[output_operand])
        uops.append(current_uop)
 
